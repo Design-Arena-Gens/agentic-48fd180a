@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart DOCX Template Filler</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.42.0/docxtemplater.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f0ff;
+        }
+
+        .upload-section.has-template {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .template-info {
+            background: #e8f4f8;
+            border-left: 4px solid #17a2b8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .template-info h3 {
+            color: #17a2b8;
+            margin-bottom: 10px;
+        }
+
+        .form-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .form-group label .placeholder-name {
+            color: #667eea;
+            font-family: monospace;
+            background: #f0f0ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .language-toggle {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .language-toggle label {
+            font-weight: 600;
+            margin-right: 15px;
+            color: #333;
+        }
+
+        .language-toggle button {
+            padding: 10px 25px;
+            margin: 0 5px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .language-toggle button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .language-toggle button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .generate-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 18px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .placeholder-list {
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .placeholder-list h3 {
+            color: #f57c00;
+            margin-bottom: 15px;
+        }
+
+        .placeholder-list ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .placeholder-list li {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: monospace;
+            color: #667eea;
+            font-size: 0.9em;
+        }
+
+        .status-message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .instructions h3 {
+            color: #1976D2;
+            margin-bottom: 15px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .reset-btn {
+            background: #dc3545;
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .upload-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Smart DOCX Template Filler</h1>
+            <p>Upload a template, fill the form, and generate your document instantly</p>
+        </div>
+
+        <div class="content">
+            <div class="instructions">
+                <h3>📋 How to Use</h3>
+                <ol>
+                    <li>Upload a DOCX template with placeholders (e.g., &lt;Name&gt;, &lt;Date&gt;, &lt;Amount&gt;)</li>
+                    <li>The system will automatically detect all placeholders</li>
+                    <li>Fill in the form fields with your data</li>
+                    <li>Choose your preferred language (English/Hindi)</li>
+                    <li>Click "Generate Document" to download your filled DOCX file</li>
+                </ol>
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <h2>📤 Upload DOCX Template</h2>
+                <p style="margin: 15px 0; color: #666;">
+                    Select a Word document with placeholders like &lt;Name&gt;, &lt;Date&gt;, &lt;FIR_No&gt;
+                </p>
+                <div class="file-input-wrapper">
+                    <label for="templateFile" class="upload-btn">
+                        Choose Template File
+                    </label>
+                    <input type="file" id="templateFile" accept=".docx" />
+                </div>
+                <button class="reset-btn" id="resetBtn" style="display: none;">Reset Template</button>
+            </div>
+
+            <div class="status-message" id="statusMessage"></div>
+
+            <div id="templateInfo" style="display: none;" class="template-info">
+                <h3>✅ Template Loaded Successfully</h3>
+                <p><strong>File:</strong> <span id="fileName"></span></p>
+                <p><strong>Placeholders Found:</strong> <span id="placeholderCount"></span></p>
+            </div>
+
+            <div id="placeholderList" style="display: none;" class="placeholder-list">
+                <h3>🔖 Detected Placeholders</h3>
+                <ul id="placeholders"></ul>
+            </div>
+
+            <div class="language-toggle" id="languageToggle" style="display: none;">
+                <label>🌐 Output Language:</label>
+                <button class="active" data-lang="en">English</button>
+                <button data-lang="hi">हिंदी (Hindi)</button>
+            </div>
+
+            <form id="dataForm" class="form-section">
+                <h2 style="margin-bottom: 25px; color: #333;">📝 Fill Template Data</h2>
+                <div id="formFields"></div>
+                <button type="submit" class="generate-btn">
+                    🚀 Generate Document
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let templateContent = null;
+        let placeholderFields = [];
+        let currentLanguage = 'en';
+        let templateFileName = '';
+
+        // Field label translations
+        const fieldLabels = {
+            en: {
+                prefix: 'Enter',
+                suffix: ''
+            },
+            hi: {
+                prefix: '',
+                suffix: 'दर्ज करें'
+            }
+        };
+
+        // Initialize
+        document.getElementById('templateFile').addEventListener('change', handleFileUpload);
+        document.getElementById('dataForm').addEventListener('submit', generateDocument);
+        document.getElementById('resetBtn').addEventListener('click', resetTemplate);
+
+        // Language toggle
+        document.querySelectorAll('.language-toggle button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.language-toggle button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentLanguage = this.dataset.lang;
+                updateFormLabels();
+            });
+        });
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showStatus('Loading template...', 'info');
+            templateFileName = file.name;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                templateContent = arrayBuffer;
+
+                // Extract placeholders
+                const zip = new PizZip(arrayBuffer);
+                const doc = new window.docxtemplater(zip, {
+                    paragraphLoop: true,
+                    linebreaks: true,
+                });
+
+                // Get all tags (placeholders)
+                const tags = doc.getFullText().match(/<([^>]+)>/g) || [];
+                placeholderFields = [...new Set(tags.map(tag => tag.replace(/[<>]/g, '')))];
+
+                if (placeholderFields.length === 0) {
+                    showStatus('⚠️ No placeholders found in template. Use format: &lt;PlaceholderName&gt;', 'error');
+                    return;
+                }
+
+                // Update UI
+                document.getElementById('uploadSection').classList.add('has-template');
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('placeholderCount').textContent = placeholderFields.length;
+                document.getElementById('templateInfo').style.display = 'block';
+                document.getElementById('resetBtn').style.display = 'inline-block';
+
+                // Show placeholder list
+                const placeholderList = document.getElementById('placeholders');
+                placeholderList.innerHTML = placeholderFields
+                    .map(field => `<li>&lt;${field}&gt;</li>`)
+                    .join('');
+                document.getElementById('placeholderList').style.display = 'block';
+
+                // Generate form
+                generateForm();
+
+                // Show language toggle and form
+                document.getElementById('languageToggle').style.display = 'block';
+                document.getElementById('dataForm').style.display = 'block';
+
+                showStatus('✅ Template loaded successfully! Fill the form below.', 'success');
+
+                // Scroll to form
+                setTimeout(() => {
+                    document.getElementById('dataForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 500);
+
+            } catch (error) {
+                console.error('Error loading template:', error);
+                showStatus('❌ Error loading template. Make sure it\'s a valid DOCX file.', 'error');
+                templateContent = null;
+            }
+        }
+
+        function generateForm() {
+            const formFields = document.getElementById('formFields');
+            formFields.innerHTML = '';
+
+            placeholderFields.forEach(field => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+
+                const label = document.createElement('label');
+                label.innerHTML = `
+                    <span class="placeholder-name">&lt;${field}&gt;</span>
+                    <br>${formatFieldName(field)}
+                `;
+
+                const input = document.createElement(field.toLowerCase().includes('address') ||
+                                                      field.toLowerCase().includes('description') ||
+                                                      field.toLowerCase().includes('details') ? 'textarea' : 'input');
+
+                if (input.tagName === 'INPUT') {
+                    input.type = 'text';
+                }
+
+                input.name = field;
+                input.id = `field_${field}`;
+                input.required = true;
+                input.placeholder = `Enter ${formatFieldName(field).toLowerCase()}...`;
+
+                formGroup.appendChild(label);
+                formGroup.appendChild(input);
+                formFields.appendChild(formGroup);
+            });
+        }
+
+        function formatFieldName(field) {
+            // Convert snake_case or camelCase to readable text
+            return field
+                .replace(/_/g, ' ')
+                .replace(/([A-Z])/g, ' $1')
+                .trim()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        }
+
+        function updateFormLabels() {
+            const labels = document.querySelectorAll('.form-group label');
+            labels.forEach((label, index) => {
+                const field = placeholderFields[index];
+                const fieldName = formatFieldName(field);
+
+                if (currentLanguage === 'hi') {
+                    label.innerHTML = `
+                        <span class="placeholder-name">&lt;${field}&gt;</span>
+                        <br>${fieldName} ${fieldLabels.hi.suffix}
+                    `;
+                } else {
+                    label.innerHTML = `
+                        <span class="placeholder-name">&lt;${field}&gt;</span>
+                        <br>${fieldLabels.en.prefix} ${fieldName}
+                    `;
+                }
+            });
+        }
+
+        async function generateDocument(event) {
+            event.preventDefault();
+
+            if (!templateContent) {
+                showStatus('❌ Please upload a template first.', 'error');
+                return;
+            }
+
+            const btn = event.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Generating... <span class="spinner"></span>';
+
+            try {
+                // Collect form data
+                const formData = new FormData(event.target);
+                const data = {};
+
+                for (let [key, value] of formData.entries()) {
+                    data[key] = value;
+                }
+
+                // Generate document
+                const zip = new PizZip(templateContent);
+                const doc = new window.docxtemplater(zip, {
+                    paragraphLoop: true,
+                    linebreaks: true,
+                });
+
+                doc.render(data);
+
+                const blob = doc.getZip().generate({
+                    type: 'blob',
+                    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                });
+
+                // Generate filename
+                const timestamp = new Date().toISOString().slice(0, 10);
+                const baseName = templateFileName.replace('.docx', '');
+                const fileName = `${baseName}_filled_${timestamp}.docx`;
+
+                // Download
+                saveAs(blob, fileName);
+
+                showStatus(`✅ Document generated successfully! Downloaded as: ${fileName}`, 'success');
+
+            } catch (error) {
+                console.error('Error generating document:', error);
+                showStatus('❌ Error generating document. Please check your inputs.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function resetTemplate() {
+            if (confirm('Are you sure you want to reset? This will clear the template and all form data.')) {
+                templateContent = null;
+                placeholderFields = [];
+                templateFileName = '';
+
+                document.getElementById('templateFile').value = '';
+                document.getElementById('uploadSection').classList.remove('has-template');
+                document.getElementById('templateInfo').style.display = 'none';
+                document.getElementById('placeholderList').style.display = 'none';
+                document.getElementById('languageToggle').style.display = 'none';
+                document.getElementById('dataForm').style.display = 'none';
+                document.getElementById('resetBtn').style.display = 'none';
+                document.getElementById('formFields').innerHTML = '';
+
+                showStatus('Template reset successfully. Upload a new template to continue.', 'info');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('Smart DOCX Template Filler loaded successfully!');
+        });
+    </script>
+</body>
+</html>
